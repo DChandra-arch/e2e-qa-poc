@@ -1,0 +1,56 @@
+name: Nightly Regression
+
+on:
+  schedule:
+    - cron: '0 2 * * *' # 2am UTC every night — test environment
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Target environment'
+        required: true
+        default: 'test'
+        type: choice
+        options:
+          - test
+          - staging
+          - production
+
+jobs:
+  nightly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: ${{ github.event.inputs.environment || 'test' }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers
+        run: npx playwright install chromium --with-deps
+
+      - name: TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Run full regression
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ vars.BASE_URL }}
+          API_URL: ${{ vars.API_URL }}
+          CI: true
+
+      - name: Upload regression report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nightly-${{ github.event.inputs.environment || 'test' }}-report
+          path: playwright-report/
+          retention-days: 30

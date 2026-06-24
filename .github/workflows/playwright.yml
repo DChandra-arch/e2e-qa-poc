@@ -7,11 +7,19 @@
 # env: CI: true — triggers retries: 2 and workers: 2 from your config
 # upload-artifact — saves the HTML report even if tests fail — if: always() ensures it runs regardless of test outcome
 
+# RUNNER NOTE:
+# Currently using free shared runners (ubuntu-latest)
+# UI tests commented out — browser download takes 15+ min on free runners
+# To enable UI tests, switch to:
+#   - GitHub larger runners (ubuntu-latest-4-cores) — paid
+#   - Self-hosted runners — your own infrastructure
+#   - Add browser caching (actions/cache) to reduce download time
+
 # ORDER MATTERS jobs - steps
 # 1. Checkout      — get the code
 # 2. Setup Node    — install runtime
 # 3. npm ci        — install packages
-# 4. Install browsers — download Chromium
+# 4. Install browsers — download Chromium (for later)
 # 5. tsc --noEmit  — catch type errors BEFORE running tests
 # 6. Run UI tests  — only if types are clean
 # 7. Run API tests — only if UI tests pass
@@ -43,17 +51,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install chromium --with-deps
+      # - name: Install Playwright browsers
+      #   run: npx playwright install chromium --with-deps
 
       - name: TypeScript check
         run: npx tsc --noEmit
 
-      - name: Run UI tests
-        run: npx playwright test tests/webUI/todo.spec.ts
-        env:
-          BASE_URL: ${{ vars.BASE_URL }}
-          CI: true
+      # - name: Run UI tests
+      #   run: npx playwright test tests/webUI/todo.spec.ts
+      #   env:
+      #     BASE_URL: ${{ vars.BASE_URL }}
+      #     CI: true
 
       - name: Run API tests
         run: npx playwright test tests/api/todo.api.spec.ts
